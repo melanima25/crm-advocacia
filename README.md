@@ -5,8 +5,8 @@ CRM para escritório de advocacia: clientes, processos, prazos em dias úteis, t
 > **Aviso:** projeto de portfólio. Todos os dados são **fictícios** (nomes, e-mails, números de processo
 > com ano 2099). Não representa nenhum escritório real e não deve receber dados reais.
 
-**Status:** v0.2 (em construção) — base do sistema (monorepo, Docker Compose, schema, seed,
-autenticação, perfis admin / advogado / assistente, auditoria) e **módulo de clientes** (CRUD, busca, filtro e paginação no servidor).
+**Status:** v0.3 (em construção) — base do sistema (monorepo, Docker Compose, schema, seed,
+autenticação, perfis admin / advogado / assistente, auditoria) **clientes** (CRUD, busca, filtro e paginação no servidor) e **processos** com número no formato CNJ, validado pelo dígito verificador (módulo 97, Res. CNJ 65/2008).
 
 ## Stack
 

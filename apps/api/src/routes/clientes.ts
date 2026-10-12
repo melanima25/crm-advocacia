@@ -11,6 +11,7 @@ import {
 import { registrarAuditoria } from '../auth/auditoria';
 import { exigir, type AppEnv } from '../auth/middleware';
 import { schema, type Db } from '../db/client';
+import { codigoPg } from '../db/erros';
 
 type Linha = typeof schema.cliente.$inferSelect;
 
@@ -147,21 +148,29 @@ export function clientesRoutes(db: Db, logado: MiddlewareHandler<AppEnv>) {
     const id = idDaRota(c.req.param('id'));
     if (!id) return c.json({ erro: 'Pedido inválido' }, 400);
     const eu = c.get('usuario');
-    const ok = await db.transaction(async (tx) => {
-      const [removido] = await tx
-        .delete(schema.cliente)
-        .where(eq(schema.cliente.id, id))
-        .returning();
-      if (!removido) return false;
-      await registrarAuditoria(tx, {
-        usuarioId: eu.id,
-        entidade: 'cliente',
-        entidadeId: id,
-        acao: 'excluir',
-        diff: { removido: camposAuditados(removido) },
+    let ok: boolean;
+    try {
+      ok = await db.transaction(async (tx) => {
+        const [removido] = await tx
+          .delete(schema.cliente)
+          .where(eq(schema.cliente.id, id))
+          .returning();
+        if (!removido) return false;
+        await registrarAuditoria(tx, {
+          usuarioId: eu.id,
+          entidade: 'cliente',
+          entidadeId: id,
+          acao: 'excluir',
+          diff: { removido: camposAuditados(removido) },
+        });
+        return true;
       });
-      return true;
-    });
+    } catch (e) {
+      // FK RESTRICT: o cliente ainda tem processos
+      if (codigoPg(e) === '23503')
+        return c.json({ erro: 'Não é possível excluir: o cliente possui processos' }, 409);
+      throw e;
+    }
     if (!ok) return c.json({ erro: 'Cliente não encontrado' }, 404);
     return c.json({ ok: true });
   });

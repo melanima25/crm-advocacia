@@ -15,6 +15,13 @@
       "when": 1791827210724,
       "tag": "0001_bored_thanos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791845307990,
+      "tag": "0002_watery_catseye",
+      "breakpoints": true
     }
   ]
 }

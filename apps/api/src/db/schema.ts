@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -9,7 +10,7 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
-import { PERFIS, TIPOS_CLIENTE } from '@crm/shared';
+import { AREAS, PERFIS, STATUS_PROCESSO, TIPOS_CLIENTE } from '@crm/shared';
 
 export const perfilEnum = pgEnum('perfil', PERFIS);
 
@@ -80,4 +81,34 @@ export const cliente = pgTable(
     atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('cliente_nome_idx').on(t.nome)],
+);
+
+export const areaEnum = pgEnum('area_processo', AREAS);
+export const statusProcessoEnum = pgEnum('status_processo', STATUS_PROCESSO);
+
+export const processo = pgTable(
+  'processo',
+  {
+    id: serial('id').primaryKey(),
+    numeroCnj: text('numero_cnj').notNull().unique(),
+    /** RESTRICT: não dá para excluir um cliente que ainda tem processos. */
+    clienteId: integer('cliente_id')
+      .notNull()
+      .references(() => cliente.id, { onDelete: 'restrict' }),
+    area: areaEnum('area').notNull(),
+    vara: text('vara').notNull(),
+    status: statusProcessoEnum('status').notNull().default('em_andamento'),
+    responsavelId: integer('responsavel_id')
+      .notNull()
+      .references(() => usuario.id, { onDelete: 'restrict' }),
+    abertoEm: date('aberto_em', { mode: 'string' }).notNull(),
+    criadoPor: integer('criado_por').references(() => usuario.id, { onDelete: 'set null' }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('processo_cliente_idx').on(t.clienteId),
+    index('processo_responsavel_idx').on(t.responsavelId),
+    index('processo_status_idx').on(t.status),
+  ],
 );

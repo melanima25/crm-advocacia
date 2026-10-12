@@ -15,6 +15,7 @@ import { registrarAuditoria } from './auth/auditoria';
 import { autenticar, COOKIE_SESSAO, exigir, protegerCsrf, type AppEnv } from './auth/middleware';
 import { criarSessao, encerrarSessao } from './auth/sessao';
 import { clientesRoutes } from './routes/clientes';
+import { processosRoutes } from './routes/processos';
 import { HASH_FALSO, verificarSenha } from './auth/senha';
 
 export type AppOptions = {
@@ -113,6 +114,7 @@ export function createApp(db: Db, options: AppOptions = {}) {
   });
 
   app.route('/api/clientes', clientesRoutes(db, logado));
+  app.route('/api/processos', processosRoutes(db, logado));
 
   // ---------------- usuários (só admin) ----------------
   app.get('/api/usuarios', logado, exigir('usuario:gerenciar'), async (c) => {

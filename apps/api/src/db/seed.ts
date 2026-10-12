@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import type { ClienteBody } from '@crm/shared';
+import { AREAS, gerarCnj, type ProcessoBody } from '@crm/shared';
 import { gerarHash } from '../auth/senha';
 import { parseEnv } from '../env';
 import { createDb, schema, type Db } from './client';
@@ -86,15 +87,73 @@ export async function semearClientes(db: Db): Promise<void> {
     .select()
     .from(schema.usuario)
     .where(eq(schema.usuario.email, USUARIOS_DEMO[0].email));
+  await db.delete(schema.processo);
   await db.delete(schema.cliente);
   await db
     .insert(schema.cliente)
     .values(clientesDemo().map((c) => ({ ...c, criadoPor: admin?.id ?? null })));
 }
 
+const VARAS = [
+  '1ª Vara Cível Fictícia',
+  '2ª Vara do Trabalho Fictícia',
+  'Vara de Família Fictícia',
+  'Vara Criminal Fictícia',
+  'Vara de Fazenda Fictícia',
+  'Vara Empresarial Fictícia',
+];
+const STATUS_DEMO = [
+  'em_andamento',
+  'em_andamento',
+  'em_andamento',
+  'suspenso',
+  'arquivado',
+  'encerrado',
+] as const;
+
+/** Processos fictícios determinísticos. Todos os números CNJ usam o ano 2099 (nunca existem de verdade). */
+export function processosDemo(clienteIds: number[], responsaveis: number[]): ProcessoBody[] {
+  return Array.from({ length: 12 }, (_, i) => ({
+    numeroCnj: gerarCnj({
+      sequencial: String(i + 1).padStart(7, '0'),
+      ano: '2099',
+      justica: '8',
+      tribunal: '26',
+      origem: String(100 + (i % 3)).padStart(4, '0'),
+    }),
+    clienteId: clienteIds[(i * 2) % clienteIds.length]!,
+    area: AREAS[i % AREAS.length]!,
+    vara: VARAS[i % VARAS.length]!,
+    status: STATUS_DEMO[i % STATUS_DEMO.length]!,
+    responsavelId: responsaveis[i % responsaveis.length]!,
+    abertoEm: `2099-${String((i % 12) + 1).padStart(2, '0')}-${String(5 + i).padStart(2, '0')}`,
+  }));
+}
+
+export async function semearProcessos(db: Db): Promise<void> {
+  await db.delete(schema.processo);
+  const clientes = await db
+    .select({ id: schema.cliente.id })
+    .from(schema.cliente)
+    .orderBy(schema.cliente.id);
+  const equipe = await db
+    .select({ id: schema.usuario.id })
+    .from(schema.usuario)
+    .where(inArray(schema.usuario.perfil, ['admin', 'advogado']))
+    .orderBy(schema.usuario.id);
+  if (clientes.length === 0 || equipe.length === 0) return;
+  await db.insert(schema.processo).values(
+    processosDemo(
+      clientes.map((c) => c.id),
+      equipe.map((u) => u.id),
+    ).map((p) => ({ ...p, criadoPor: equipe[0]!.id })),
+  );
+}
+
 export async function semear(db: Db, iteracoes?: number): Promise<void> {
   await semearUsuarios(db, iteracoes);
   await semearClientes(db);
+  await semearProcessos(db);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -104,7 +163,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     // Em Workers o PBKDF2 aceita até ~100k iterações (ver docs/adr/0001): use HASH_ITERACOES=100000 lá.
     await semear(db, process.env.HASH_ITERACOES ? Number(process.env.HASH_ITERACOES) : undefined);
     console.log(
-      `Seed ok: ${USUARIOS_DEMO.length} usuários e ${clientesDemo().length} clientes fictícios (senha ${SENHA_DEMO}).`,
+      `Seed ok: ${USUARIOS_DEMO.length} usuários e ${clientesDemo().length} clientes e 12 processos fictícios (senha ${SENHA_DEMO}).`,
     );
   } finally {
     await close();

@@ -4,10 +4,11 @@ import { z } from 'zod';
 import { ACOES, ROTULO_PERFIL, acoesDoPerfil, podeFazer, type UsuarioPublico } from '@crm/shared';
 import { chamar } from '../api';
 import { Clientes } from './Clientes';
+import { Processos } from './Processos';
 import { Auditoria } from './Auditoria';
 import { Permissoes } from './Permissoes';
 
-type Aba = 'clientes' | 'permissoes' | 'auditoria';
+type Aba = 'clientes' | 'processos' | 'permissoes' | 'auditoria';
 
 export function Shell({ usuario }: { usuario: UsuarioPublico }) {
   const qc = useQueryClient();
@@ -46,6 +47,14 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
         </button>
         <button
           type="button"
+          aria-pressed={aba === 'processos'}
+          onClick={() => setAba('processos')}
+          className="rounded px-3 py-1.5 text-sm aria-pressed:bg-surface aria-pressed:text-ouro"
+        >
+          Processos
+        </button>
+        <button
+          type="button"
           aria-pressed={aba === 'permissoes'}
           onClick={() => setAba('permissoes')}
           className="rounded px-3 py-1.5 text-sm aria-pressed:bg-surface aria-pressed:text-ouro"
@@ -65,6 +74,7 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
       </nav>
       <main className="mt-4">
         {aba === 'clientes' && <Clientes perfil={usuario.perfil} />}
+        {aba === 'processos' && <Processos perfil={usuario.perfil} />}
         {aba === 'permissoes' && (
           <Permissoes
             perfil={usuario.perfil}

@@ -26,7 +26,7 @@ export async function prepararBanco() {
 
 export async function limpar(db: Db) {
   await db.execute(
-    sql`truncate table auditoria, cliente, sessao, tentativa_login, usuario restart identity cascade`,
+    sql`truncate table auditoria, processo, cliente, sessao, tentativa_login, usuario restart identity cascade`,
   );
 }
 
