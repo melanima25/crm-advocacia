@@ -3,14 +3,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { ACOES, ROTULO_PERFIL, acoesDoPerfil, podeFazer, type UsuarioPublico } from '@crm/shared';
 import { chamar } from '../api';
+import { Clientes } from './Clientes';
 import { Auditoria } from './Auditoria';
 import { Permissoes } from './Permissoes';
 
-type Aba = 'permissoes' | 'auditoria';
+type Aba = 'clientes' | 'permissoes' | 'auditoria';
 
 export function Shell({ usuario }: { usuario: UsuarioPublico }) {
   const qc = useQueryClient();
-  const [aba, setAba] = useState<Aba>('permissoes');
+  const [aba, setAba] = useState<Aba>('clientes');
   const sair = useMutation({
     mutationFn: () => chamar('/api/auth/logout', z.object({ ok: z.boolean() }), { method: 'POST' }),
     onSuccess: () => qc.resetQueries(),
@@ -37,6 +38,14 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
       <nav aria-label="Seções" className="mt-4 flex gap-2">
         <button
           type="button"
+          aria-pressed={aba === 'clientes'}
+          onClick={() => setAba('clientes')}
+          className="rounded px-3 py-1.5 text-sm aria-pressed:bg-surface aria-pressed:text-ouro"
+        >
+          Clientes
+        </button>
+        <button
+          type="button"
           aria-pressed={aba === 'permissoes'}
           onClick={() => setAba('permissoes')}
           className="rounded px-3 py-1.5 text-sm aria-pressed:bg-surface aria-pressed:text-ouro"
@@ -55,15 +64,15 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
         )}
       </nav>
       <main className="mt-4">
-        {aba === 'permissoes' || !verAuditoria ? (
+        {aba === 'clientes' && <Clientes perfil={usuario.perfil} />}
+        {aba === 'permissoes' && (
           <Permissoes
             perfil={usuario.perfil}
             total={ACOES.length}
             permitidas={acoesDoPerfil(usuario.perfil)}
           />
-        ) : (
-          <Auditoria />
         )}
+        {aba === 'auditoria' && verAuditoria && <Auditoria />}
       </main>
     </div>
   );

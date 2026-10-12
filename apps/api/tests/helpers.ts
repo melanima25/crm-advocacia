@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { createApp, type AppOptions } from '../src/app';
 import { createDb, type Db } from '../src/db/client';
 import { runMigrations } from '../src/db/migrate';
-import { SENHA_DEMO, semear } from '../src/db/seed';
+import { SENHA_DEMO, semearUsuarios } from '../src/db/seed';
 
 export const ITERACOES_TESTE = 1000; // rápido; o valor real (600k) é medido à parte
 
@@ -20,13 +20,13 @@ export async function prepararBanco() {
   await runMigrations(url);
   const { db, close } = createDb(url);
   await limpar(db);
-  await semear(db, ITERACOES_TESTE);
+  await semearUsuarios(db, ITERACOES_TESTE);
   return { db, close };
 }
 
 export async function limpar(db: Db) {
   await db.execute(
-    sql`truncate table auditoria, sessao, tentativa_login, usuario restart identity cascade`,
+    sql`truncate table auditoria, cliente, sessao, tentativa_login, usuario restart identity cascade`,
   );
 }
 

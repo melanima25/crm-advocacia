@@ -9,9 +9,11 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
-import { PERFIS } from '@crm/shared';
+import { PERFIS, TIPOS_CLIENTE } from '@crm/shared';
 
 export const perfilEnum = pgEnum('perfil', PERFIS);
+
+export const tipoClienteEnum = pgEnum('tipo_cliente', TIPOS_CLIENTE);
 
 export const usuario = pgTable('usuario', {
   id: serial('id').primaryKey(),
@@ -61,4 +63,21 @@ export const auditoria = pgTable(
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('auditoria_criado_idx').on(t.criadoEm)],
+);
+
+export const cliente = pgTable(
+  'cliente',
+  {
+    id: serial('id').primaryKey(),
+    tipo: tipoClienteEnum('tipo').notNull(),
+    nome: text('nome').notNull(),
+    /** Referência FICTÍCIA (não é validada como CPF/CNPJ de propósito). */
+    documento: text('documento'),
+    email: text('email'),
+    telefone: text('telefone'),
+    criadoPor: integer('criado_por').references(() => usuario.id, { onDelete: 'set null' }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('cliente_nome_idx').on(t.nome)],
 );

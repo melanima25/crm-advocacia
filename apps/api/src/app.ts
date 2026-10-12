@@ -14,6 +14,7 @@ import { schema, type Db } from './db/client';
 import { registrarAuditoria } from './auth/auditoria';
 import { autenticar, COOKIE_SESSAO, exigir, protegerCsrf, type AppEnv } from './auth/middleware';
 import { criarSessao, encerrarSessao } from './auth/sessao';
+import { clientesRoutes } from './routes/clientes';
 import { HASH_FALSO, verificarSenha } from './auth/senha';
 
 export type AppOptions = {
@@ -110,6 +111,8 @@ export function createApp(db: Db, options: AppOptions = {}) {
     const u = c.get('usuario');
     return c.json(MeResponseSchema.parse({ usuario: { ...u, ativo: true } }));
   });
+
+  app.route('/api/clientes', clientesRoutes(db, logado));
 
   // ---------------- usuários (só admin) ----------------
   app.get('/api/usuarios', logado, exigir('usuario:gerenciar'), async (c) => {

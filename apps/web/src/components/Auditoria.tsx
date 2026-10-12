@@ -22,7 +22,7 @@ export function Auditoria() {
       <h2 id="titulo-aud" className="mb-3 text-lg font-medium">
         Trilha de auditoria
       </h2>
-      <div className="overflow-x-auto rounded border border-borda">
+      <div className="relative overflow-x-auto rounded border border-borda">
         <table className="w-full text-left text-sm">
           <caption className="sr-only">
             Registros de auditoria, do mais recente ao mais antigo

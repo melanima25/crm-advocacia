@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { ACOES, PERMISSOES, PERFIS, type Acao } from '@crm/shared';
 import { schema, type Db } from '../src/db/client';
-import { SENHA_DEMO, semear } from '../src/db/seed';
+import { SENHA_DEMO, semearUsuarios } from '../src/db/seed';
 import { gerarHash } from '../src/auth/senha';
 import { JANELA_BLOQUEIO_MIN, MAX_FALHAS } from '../src/app';
 import { ITERACOES_TESTE, criarAppDeTeste, csrf, entrar, limpar, prepararBanco } from './helpers';
@@ -19,7 +19,7 @@ afterAll(async () => close());
 beforeEach(async () => {
   agora = new Date('2099-01-10T12:00:00Z');
   await limpar(db);
-  await semear(db, ITERACOES_TESTE);
+  await semearUsuarios(db, ITERACOES_TESTE);
 });
 
 const login = (email: string, senha: string) =>
