@@ -196,18 +196,26 @@ export function processosRoutes(db: Db, logado: MiddlewareHandler<AppEnv>) {
     const id = idDaRota(c.req.param('id'));
     if (!id) return c.json({ erro: 'Pedido inválido' }, 400);
     const eu = c.get('usuario');
-    const ok = await db.transaction(async (tx) => {
-      const [removido] = await tx.delete(p).where(eq(p.id, id)).returning();
-      if (!removido) return false;
-      await registrarAuditoria(tx, {
-        usuarioId: eu.id,
-        entidade: 'processo',
-        entidadeId: id,
-        acao: 'excluir',
-        diff: { removido: camposAuditados(removido) },
+    let ok: boolean;
+    try {
+      ok = await db.transaction(async (tx) => {
+        const [removido] = await tx.delete(p).where(eq(p.id, id)).returning();
+        if (!removido) return false;
+        await registrarAuditoria(tx, {
+          usuarioId: eu.id,
+          entidade: 'processo',
+          entidadeId: id,
+          acao: 'excluir',
+          diff: { removido: camposAuditados(removido) },
+        });
+        return true;
       });
-      return true;
-    });
+    } catch (e) {
+      // FK RESTRICT: o processo ainda tem prazos
+      if (codigoPg(e) === '23503')
+        return c.json({ erro: 'Não é possível excluir: o processo possui prazos' }, 409);
+      throw e;
+    }
     if (!ok) return c.json({ erro: 'Processo não encontrado' }, 404);
     return c.json({ ok: true });
   });

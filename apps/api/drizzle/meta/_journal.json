@@ -22,6 +22,13 @@
       "when": 1791845307990,
       "tag": "0002_watery_catseye",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791856286728,
+      "tag": "0003_talented_captain_universe",
+      "breakpoints": true
     }
   ]
 }

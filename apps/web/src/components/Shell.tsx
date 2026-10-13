@@ -5,10 +5,13 @@ import { ACOES, ROTULO_PERFIL, acoesDoPerfil, podeFazer, type UsuarioPublico } f
 import { chamar } from '../api';
 import { Clientes } from './Clientes';
 import { Processos } from './Processos';
+import { Prazos } from './Prazos';
+import { Agenda } from './Agenda';
+import { Feriados } from './Feriados';
 import { Auditoria } from './Auditoria';
 import { Permissoes } from './Permissoes';
 
-type Aba = 'clientes' | 'processos' | 'permissoes' | 'auditoria';
+type Aba = 'clientes' | 'processos' | 'prazos' | 'agenda' | 'feriados' | 'permissoes' | 'auditoria';
 
 export function Shell({ usuario }: { usuario: UsuarioPublico }) {
   const qc = useQueryClient();
@@ -18,6 +21,7 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
     onSuccess: () => qc.resetQueries(),
   });
   const verAuditoria = podeFazer(usuario.perfil, 'auditoria:ver');
+  const verFeriados = podeFazer(usuario.perfil, 'feriado:gerenciar');
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
@@ -36,7 +40,7 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
           Sair
         </button>
       </header>
-      <nav aria-label="Seções" className="mt-4 flex gap-2">
+      <nav aria-label="Seções" className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
           aria-pressed={aba === 'clientes'}
@@ -53,6 +57,32 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
         >
           Processos
         </button>
+        <button
+          type="button"
+          aria-pressed={aba === 'prazos'}
+          onClick={() => setAba('prazos')}
+          className="rounded px-3 py-1.5 text-sm aria-pressed:bg-surface aria-pressed:text-ouro"
+        >
+          Prazos
+        </button>
+        <button
+          type="button"
+          aria-pressed={aba === 'agenda'}
+          onClick={() => setAba('agenda')}
+          className="rounded px-3 py-1.5 text-sm aria-pressed:bg-surface aria-pressed:text-ouro"
+        >
+          Agenda
+        </button>
+        {verFeriados && (
+          <button
+            type="button"
+            aria-pressed={aba === 'feriados'}
+            onClick={() => setAba('feriados')}
+            className="rounded px-3 py-1.5 text-sm aria-pressed:bg-surface aria-pressed:text-ouro"
+          >
+            Feriados
+          </button>
+        )}
         <button
           type="button"
           aria-pressed={aba === 'permissoes'}
@@ -75,6 +105,9 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
       <main className="mt-4">
         {aba === 'clientes' && <Clientes perfil={usuario.perfil} />}
         {aba === 'processos' && <Processos perfil={usuario.perfil} />}
+        {aba === 'prazos' && <Prazos perfil={usuario.perfil} usuarioId={usuario.id} />}
+        {aba === 'agenda' && <Agenda />}
+        {aba === 'feriados' && verFeriados && <Feriados />}
         {aba === 'permissoes' && (
           <Permissoes
             perfil={usuario.perfil}

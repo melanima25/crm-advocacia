@@ -5,8 +5,8 @@ CRM para escritório de advocacia: clientes, processos, prazos em dias úteis, t
 > **Aviso:** projeto de portfólio. Todos os dados são **fictícios** (nomes, e-mails, números de processo
 > com ano 2099). Não representa nenhum escritório real e não deve receber dados reais.
 
-**Status:** v0.3 (em construção) — base do sistema (monorepo, Docker Compose, schema, seed,
-autenticação, perfis admin / advogado / assistente, auditoria) **clientes** (CRUD, busca, filtro e paginação no servidor) e **processos** com número no formato CNJ, validado pelo dígito verificador (módulo 97, Res. CNJ 65/2008).
+**Status:** v0.4 (em construção) — base do sistema (monorepo, Docker Compose, schema, seed,
+autenticação, perfis admin / advogado / assistente, auditoria) **clientes** (CRUD, busca, filtro e paginação no servidor) e **processos** com número no formato CNJ, validado pelo dígito verificador (módulo 97, Res. CNJ 65/2008), além de **prazos em dias úteis com feriados** e agenda.
 
 ## Stack
 
@@ -35,6 +35,17 @@ npm run test:integration # API contra Postgres (usa um banco com "test" no nome)
 ```
 
 Os testes de integração apagam dados: por segurança só rodam em banco cujo nome contém `test`.
+
+## Regras de prazos (regras do projeto fictício — não é consultoria jurídica)
+
+- A contagem é em **dias úteis**: o dia da intimação **não conta**; o dia 1 é o primeiro dia útil seguinte.
+- Sábados, domingos e **feriados cadastrados** não contam. Como a contagem só avança por dias úteis, o vencimento cai sempre num dia útil (a "prorrogação" é consequência).
+- Prazo calculado vence às **23:59 (Brasília)**; audiências e reuniões têm data e hora informadas (fuso fixo UTC−3).
+- Feriados nacionais (fixos + Sexta-feira Santa, via algoritmo da Páscoa) são semeados; estaduais, municipais e pontos facultativos o admin cadastra.
+- Se o ano da contagem **não tem nenhum feriado cadastrado**, a API recusa gravar (422) e a tela avisa: melhor não gravar do que gravar um prazo possivelmente errado.
+- Prazo "vencido" = pendente com vencimento já passado (relógio do servidor). Marcar cumprido/perdido é só admin e advogado.
+- Assistente só cria/edita prazos de processos em que atua (é o responsável).
+- Mudar a lista de feriados não recalcula prazos já gravados; eles são recalculados ao serem editados.
 
 ## Decisões de segurança
 

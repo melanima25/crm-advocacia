@@ -1,7 +1,18 @@
 import { fileURLToPath } from 'node:url';
 import { eq, inArray } from 'drizzle-orm';
 import type { ClienteBody } from '@crm/shared';
-import { AREAS, gerarCnj, type ProcessoBody } from '@crm/shared';
+import {
+  AREAS,
+  calcularVencimento,
+  feriadosNacionais,
+  fimDoDiaBrasilia,
+  gerarCnj,
+  hojeEmBrasilia,
+  localBrasiliaParaDate,
+  proximoDiaUtil,
+  somarDias,
+  type ProcessoBody,
+} from '@crm/shared';
 import { gerarHash } from '../auth/senha';
 import { parseEnv } from '../env';
 import { createDb, schema, type Db } from './client';
@@ -87,6 +98,7 @@ export async function semearClientes(db: Db): Promise<void> {
     .select()
     .from(schema.usuario)
     .where(eq(schema.usuario.email, USUARIOS_DEMO[0].email));
+  await db.delete(schema.prazo);
   await db.delete(schema.processo);
   await db.delete(schema.cliente);
   await db
@@ -131,6 +143,7 @@ export function processosDemo(clienteIds: number[], responsaveis: number[]): Pro
 }
 
 export async function semearProcessos(db: Db): Promise<void> {
+  await db.delete(schema.prazo);
   await db.delete(schema.processo);
   const clientes = await db
     .select({ id: schema.cliente.id })
@@ -142,18 +155,125 @@ export async function semearProcessos(db: Db): Promise<void> {
     .where(inArray(schema.usuario.perfil, ['admin', 'advogado']))
     .orderBy(schema.usuario.id);
   if (clientes.length === 0 || equipe.length === 0) return;
-  await db.insert(schema.processo).values(
-    processosDemo(
-      clientes.map((c) => c.id),
-      equipe.map((u) => u.id),
-    ).map((p) => ({ ...p, criadoPor: equipe[0]!.id })),
-  );
+  const [assistente] = await db
+    .select({ id: schema.usuario.id })
+    .from(schema.usuario)
+    .where(eq(schema.usuario.perfil, 'assistente'));
+  const lista = processosDemo(
+    clientes.map((c) => c.id),
+    equipe.map((u) => u.id),
+  ).map((p, i) => ({
+    ...p,
+    // 2 processos têm a assistente como responsável: ela só mexe em prazos de processos em que atua
+    responsavelId: assistente && (i === 4 || i === 9) ? assistente.id : p.responsavelId,
+    criadoPor: equipe[0]!.id,
+  }));
+  await db.insert(schema.processo).values(lista);
 }
 
-export async function semear(db: Db, iteracoes?: number): Promise<void> {
+export async function semearFeriados(db: Db, agora: Date = new Date()): Promise<void> {
+  const ano = Number(hojeEmBrasilia(agora).slice(0, 4));
+  await db.delete(schema.feriado);
+  const todos = [ano - 1, ano, ano + 1].flatMap((a) => feriadosNacionais(a));
+  await db.insert(schema.feriado).values(todos);
+}
+
+type PrazoDemo = {
+  proc: number;
+  tipo: 'prazo' | 'audiencia' | 'reuniao';
+  status?: 'pendente' | 'cumprido' | 'perdido';
+  obs: string;
+} & ({ intimacaoOffset: number; dias: number } | { diaOffset: number; hora: string });
+
+/** Cenário fixo, relativo a "hoje": o reset diário sempre recria prazos vencidos, de hoje, da semana e futuros. */
+const PRAZOS_DEMO: PrazoDemo[] = [
+  { proc: 0, tipo: 'prazo', intimacaoOffset: -30, dias: 15, obs: 'Contestação (vencido)' },
+  { proc: 1, tipo: 'prazo', intimacaoOffset: -25, dias: 10, obs: 'Réplica (vencido)' },
+  {
+    proc: 2,
+    tipo: 'audiencia',
+    diaOffset: 0,
+    hora: '23:00',
+    obs: 'Audiência de conciliação (hoje)',
+  },
+  { proc: 3, tipo: 'prazo', intimacaoOffset: -8, dias: 5, obs: 'Manifestação sobre documentos' },
+  { proc: 4, tipo: 'prazo', intimacaoOffset: -3, dias: 8, obs: 'Recurso (poucos dias)' },
+  { proc: 5, tipo: 'reuniao', diaOffset: 2, hora: '10:00', obs: 'Reunião com o cliente' },
+  { proc: 6, tipo: 'prazo', intimacaoOffset: 0, dias: 15, obs: 'Apelação' },
+  { proc: 7, tipo: 'audiencia', diaOffset: 5, hora: '14:30', obs: 'Audiência de instrução' },
+  { proc: 8, tipo: 'prazo', intimacaoOffset: 1, dias: 30, obs: 'Cumprimento de sentença' },
+  { proc: 9, tipo: 'reuniao', diaOffset: 12, hora: '09:00', obs: 'Alinhamento de estratégia' },
+  { proc: 10, tipo: 'audiencia', diaOffset: 20, hora: '15:00', obs: 'Audiência de julgamento' },
+  {
+    proc: 11,
+    tipo: 'prazo',
+    intimacaoOffset: -20,
+    dias: 10,
+    status: 'cumprido',
+    obs: 'Petição inicial (cumprido)',
+  },
+  {
+    proc: 0,
+    tipo: 'prazo',
+    intimacaoOffset: -15,
+    dias: 5,
+    status: 'cumprido',
+    obs: 'Embargos (cumprido)',
+  },
+  {
+    proc: 1,
+    tipo: 'prazo',
+    intimacaoOffset: -40,
+    dias: 5,
+    status: 'perdido',
+    obs: 'Prazo perdido (exemplo)',
+  },
+];
+
+export async function semearPrazos(db: Db, agora: Date = new Date()): Promise<void> {
+  await db.delete(schema.prazo);
+  const procs = await db.select().from(schema.processo).orderBy(schema.processo.id);
+  const feriados = new Set(
+    (await db.select({ data: schema.feriado.data }).from(schema.feriado)).map((f) => f.data),
+  );
+  if (procs.length === 0) return;
+  const hoje = hojeEmBrasilia(agora);
+  const linhas = PRAZOS_DEMO.map((d) => {
+    const proc = procs[d.proc % procs.length]!;
+    let venceEm: Date;
+    let intimacaoEm: string | null = null;
+    let diasUteis: number | null = null;
+    if ('dias' in d) {
+      intimacaoEm = somarDias(hoje, d.intimacaoOffset);
+      diasUteis = d.dias;
+      venceEm = fimDoDiaBrasilia(calcularVencimento(intimacaoEm, d.dias, feriados).venceEm);
+    } else {
+      // compromissos marcados só em dia útil
+      venceEm = localBrasiliaParaDate(
+        `${proximoDiaUtil(somarDias(hoje, d.diaOffset), feriados)}T${d.hora}`,
+      );
+    }
+    return {
+      processoId: proc.id,
+      tipo: d.tipo,
+      intimacaoEm,
+      diasUteis,
+      venceEm,
+      responsavelId: proc.responsavelId,
+      status: d.status ?? ('pendente' as const),
+      observacao: d.obs,
+      criadoPor: proc.responsavelId,
+    };
+  });
+  await db.insert(schema.prazo).values(linhas);
+}
+
+export async function semear(db: Db, iteracoes?: number, agora: Date = new Date()): Promise<void> {
   await semearUsuarios(db, iteracoes);
   await semearClientes(db);
   await semearProcessos(db);
+  await semearFeriados(db, agora);
+  await semearPrazos(db, agora);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -163,7 +283,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     // Em Workers o PBKDF2 aceita até ~100k iterações (ver docs/adr/0001): use HASH_ITERACOES=100000 lá.
     await semear(db, process.env.HASH_ITERACOES ? Number(process.env.HASH_ITERACOES) : undefined);
     console.log(
-      `Seed ok: ${USUARIOS_DEMO.length} usuários e ${clientesDemo().length} clientes e 12 processos fictícios (senha ${SENHA_DEMO}).`,
+      `Seed ok: ${USUARIOS_DEMO.length} usuários e ${clientesDemo().length} clientes e 12 processos, feriados e 14 prazos fictícios (senha ${SENHA_DEMO}).`,
     );
   } finally {
     await close();

@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   date,
   index,
   integer,
@@ -10,7 +12,14 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
-import { AREAS, PERFIS, STATUS_PROCESSO, TIPOS_CLIENTE } from '@crm/shared';
+import {
+  AREAS,
+  PERFIS,
+  STATUS_PRAZO,
+  STATUS_PROCESSO,
+  TIPOS_CLIENTE,
+  TIPOS_PRAZO,
+} from '@crm/shared';
 
 export const perfilEnum = pgEnum('perfil', PERFIS);
 
@@ -110,5 +119,48 @@ export const processo = pgTable(
     index('processo_cliente_idx').on(t.clienteId),
     index('processo_responsavel_idx').on(t.responsavelId),
     index('processo_status_idx').on(t.status),
+  ],
+);
+
+export const tipoPrazoEnum = pgEnum('tipo_prazo', TIPOS_PRAZO);
+export const statusPrazoEnum = pgEnum('status_prazo', STATUS_PRAZO);
+
+export const feriado = pgTable('feriado', {
+  data: date('data', { mode: 'string' }).primaryKey(),
+  nome: text('nome').notNull(),
+  criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const prazo = pgTable(
+  'prazo',
+  {
+    id: serial('id').primaryKey(),
+    /** RESTRICT: um processo com prazos não pode ser apagado por engano. */
+    processoId: integer('processo_id')
+      .notNull()
+      .references(() => processo.id, { onDelete: 'restrict' }),
+    tipo: tipoPrazoEnum('tipo').notNull(),
+    intimacaoEm: date('intimacao_em', { mode: 'string' }),
+    diasUteis: integer('dias_uteis'),
+    /** Instante UTC do vencimento (prazo calculado = 23:59:59 em Brasília). */
+    venceEm: timestamp('vence_em', { withTimezone: true }).notNull(),
+    responsavelId: integer('responsavel_id')
+      .notNull()
+      .references(() => usuario.id, { onDelete: 'restrict' }),
+    status: statusPrazoEnum('status').notNull().default('pendente'),
+    observacao: text('observacao'),
+    criadoPor: integer('criado_por').references(() => usuario.id, { onDelete: 'set null' }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('prazo_vence_idx').on(t.venceEm),
+    index('prazo_processo_idx').on(t.processoId),
+    index('prazo_responsavel_idx').on(t.responsavelId),
+    check(
+      'prazo_dias_uteis_faixa',
+      sql`${t.diasUteis} is null or (${t.diasUteis} between 1 and 365)`,
+    ),
+    check('prazo_contagem_completa', sql`(${t.intimacaoEm} is null) = (${t.diasUteis} is null)`),
   ],
 );
