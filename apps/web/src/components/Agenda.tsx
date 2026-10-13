@@ -146,13 +146,18 @@ export function Agenda() {
                           onClick={() => setDiaSel(dia === diaSel ? null : dia)}
                           aria-pressed={dia === diaSel}
                           aria-label={`${dataComDia(dia)}${feriado ? `, feriado: ${feriado}` : ''}, ${itens.length} compromisso${itens.length === 1 ? '' : 's'}`}
-                          className="flex h-full w-full flex-col items-start rounded p-1 text-left hover:bg-surface aria-pressed:outline aria-pressed:outline-1 aria-pressed:outline-ouro"
+                          className="flex h-full w-full min-w-0 flex-col items-start overflow-hidden rounded p-1 text-left hover:bg-surface aria-pressed:outline aria-pressed:outline-1 aria-pressed:outline-ouro"
                         >
                           <span className={dia === hoje ? 'font-bold text-ouro' : ''}>
                             {Number(dia.slice(8))}
                           </span>
                           {feriado && (
-                            <span className="truncate text-[10px] text-suave">★ {feriado}</span>
+                            <span
+                              title={feriado}
+                              className="line-clamp-2 max-w-full break-words text-[10px] leading-tight text-suave"
+                            >
+                              ★ {feriado}
+                            </span>
                           )}
                           {itens.length > 0 && (
                             <span className="text-[11px] text-ouro">● {itens.length}</span>
