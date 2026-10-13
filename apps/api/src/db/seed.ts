@@ -98,6 +98,7 @@ export async function semearClientes(db: Db): Promise<void> {
     .select()
     .from(schema.usuario)
     .where(eq(schema.usuario.email, USUARIOS_DEMO[0].email));
+  await db.delete(schema.tarefa);
   await db.delete(schema.prazo);
   await db.delete(schema.processo);
   await db.delete(schema.cliente);
@@ -268,12 +269,48 @@ export async function semearPrazos(db: Db, agora: Date = new Date()): Promise<vo
   await db.insert(schema.prazo).values(linhas);
 }
 
+/** Tarefas de demonstração; datas relativas a "hoje" (negativo = atrasada). usuario: 0 admin, 1 advogado, 2 assistente. */
+const TAREFAS_DEMO = [
+  { t: 'Reunir documentos do cliente', u: 2, proc: 4, off: -2, st: 'a_fazer' },
+  { t: 'Protocolar petição de juntada', u: 2, proc: 9, off: 1, st: 'fazendo' },
+  { t: 'Organizar pasta digital do processo', u: 2, proc: 4, off: 5, st: 'a_fazer' },
+  { t: 'Agendar reunião com o cliente', u: 2, proc: null, off: 2, st: 'feito' },
+  { t: 'Revisar minuta de contestação', u: 1, proc: 0, off: 0, st: 'fazendo' },
+  { t: 'Preparar audiência de instrução', u: 1, proc: 1, off: 3, st: 'a_fazer' },
+  { t: 'Analisar recurso da parte contrária', u: 1, proc: 2, off: -1, st: 'a_fazer' },
+  { t: 'Conferir cálculo de honorários', u: 1, proc: 3, off: 6, st: 'a_fazer' },
+  { t: 'Enviar parecer ao cliente', u: 1, proc: 5, off: -4, st: 'feito' },
+  { t: 'Atualizar tabela de feriados', u: 0, proc: null, off: 7, st: 'a_fazer' },
+  { t: 'Revisar permissões da equipe', u: 0, proc: null, off: 10, st: 'fazendo' },
+  { t: 'Conferir andamento dos processos parados', u: 0, proc: 6, off: 2, st: 'a_fazer' },
+] as const;
+
+export async function semearTarefas(db: Db, agora: Date = new Date()): Promise<void> {
+  await db.delete(schema.tarefa);
+  const procs = await db.select().from(schema.processo).orderBy(schema.processo.id);
+  const users = await db.select().from(schema.usuario).orderBy(schema.usuario.id);
+  const porEmail = USUARIOS_DEMO.map((d) => users.find((u) => u.email === d.email));
+  if (procs.length === 0 || porEmail.some((u) => !u)) return;
+  const hoje = hojeEmBrasilia(agora);
+  await db.insert(schema.tarefa).values(
+    TAREFAS_DEMO.map((d) => ({
+      titulo: d.t,
+      processoId: d.proc === null ? null : procs[d.proc % procs.length]!.id,
+      responsavelId: porEmail[d.u]!.id,
+      status: d.st,
+      venceEm: somarDias(hoje, d.off),
+      criadoPor: porEmail[d.u]!.id,
+    })),
+  );
+}
+
 export async function semear(db: Db, iteracoes?: number, agora: Date = new Date()): Promise<void> {
   await semearUsuarios(db, iteracoes);
   await semearClientes(db);
   await semearProcessos(db);
   await semearFeriados(db, agora);
   await semearPrazos(db, agora);
+  await semearTarefas(db, agora);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -283,7 +320,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     // Em Workers o PBKDF2 aceita até ~100k iterações (ver docs/adr/0001): use HASH_ITERACOES=100000 lá.
     await semear(db, process.env.HASH_ITERACOES ? Number(process.env.HASH_ITERACOES) : undefined);
     console.log(
-      `Seed ok: ${USUARIOS_DEMO.length} usuários e ${clientesDemo().length} clientes e 12 processos, feriados e 14 prazos fictícios (senha ${SENHA_DEMO}).`,
+      `Seed ok: ${USUARIOS_DEMO.length} usuários e ${clientesDemo().length} clientes e 12 processos, feriados, 14 prazos e 12 tarefas fictícios (senha ${SENHA_DEMO}).`,
     );
   } finally {
     await close();

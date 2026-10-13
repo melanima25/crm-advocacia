@@ -5,8 +5,8 @@ CRM para escritório de advocacia: clientes, processos, prazos em dias úteis, t
 > **Aviso:** projeto de portfólio. Todos os dados são **fictícios** (nomes, e-mails, números de processo
 > com ano 2099). Não representa nenhum escritório real e não deve receber dados reais.
 
-**Status:** v0.4 (em construção) — base do sistema (monorepo, Docker Compose, schema, seed,
-autenticação, perfis admin / advogado / assistente, auditoria) **clientes** (CRUD, busca, filtro e paginação no servidor) e **processos** com número no formato CNJ, validado pelo dígito verificador (módulo 97, Res. CNJ 65/2008), além de **prazos em dias úteis com feriados** e agenda.
+**Status:** v0.5 (em construção) — base do sistema (monorepo, Docker Compose, schema, seed,
+autenticação, perfis admin / advogado / assistente, auditoria) **clientes** (CRUD, busca, filtro e paginação no servidor) e **processos** com número no formato CNJ, validado pelo dígito verificador (módulo 97, Res. CNJ 65/2008), além de **prazos em dias úteis com feriados**, agenda, **tarefas** (quadro A fazer / Fazendo / Feito) e um **painel** com indicadores.
 
 ## Stack
 
@@ -46,6 +46,13 @@ Os testes de integração apagam dados: por segurança só rodam em banco cujo n
 - Prazo "vencido" = pendente com vencimento já passado (relógio do servidor). Marcar cumprido/perdido é só admin e advogado.
 - Assistente só cria/edita prazos de processos em que atua (é o responsável).
 - Mudar a lista de feriados não recalcula prazos já gravados; eles são recalculados ao serem editados.
+
+## Tarefas e painel
+
+- Tarefa: título, responsável, vencimento opcional (data, calendário de Brasília) e processo opcional. Atrasada = não concluída e com data anterior a hoje; "vence hoje" ainda está no prazo.
+- Admin e advogado atribuem tarefas a qualquer pessoa ativa e mexem em qualquer tarefa; o assistente só cria, edita e move as **próprias**. Toda alteração entra na auditoria; não há exclusão no MVP.
+- O painel (`GET /api/dashboard`) tem dois níveis: o **completo** (admin e advogado) inclui processos por status e por área; o **básico** (assistente) traz só prazos e tarefas — a seção de processos **não é enviada** pela API (testado), não apenas escondida na tela.
+- Gráficos: barras horizontais, colunas e barras empilhadas, todos em SVG próprio, com paleta validada (contraste e daltonismo) contra o fundo escuro, ponta arredondada de 4px, tooltip por mouse **e** teclado, legenda quando há duas séries, e uma tabela equivalente em cada gráfico ("Ver dados do gráfico em tabela").
 
 ## Decisões de segurança
 

@@ -5,3 +5,4 @@ export * from './cnj';
 export * from './processos';
 export * from './dias-uteis';
 export * from './prazos';
+export * from './tarefas';

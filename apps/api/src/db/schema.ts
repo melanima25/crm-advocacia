@@ -16,6 +16,7 @@ import {
   AREAS,
   PERFIS,
   STATUS_PRAZO,
+  STATUS_TAREFA,
   STATUS_PROCESSO,
   TIPOS_CLIENTE,
   TIPOS_PRAZO,
@@ -162,5 +163,32 @@ export const prazo = pgTable(
       sql`${t.diasUteis} is null or (${t.diasUteis} between 1 and 365)`,
     ),
     check('prazo_contagem_completa', sql`(${t.intimacaoEm} is null) = (${t.diasUteis} is null)`),
+  ],
+);
+
+export const statusTarefaEnum = pgEnum('status_tarefa', STATUS_TAREFA);
+
+export const tarefa = pgTable(
+  'tarefa',
+  {
+    id: serial('id').primaryKey(),
+    titulo: text('titulo').notNull(),
+    descricao: text('descricao'),
+    /** Opcional. RESTRICT: não apaga um processo que ainda tem tarefas ligadas. */
+    processoId: integer('processo_id').references(() => processo.id, { onDelete: 'restrict' }),
+    responsavelId: integer('responsavel_id')
+      .notNull()
+      .references(() => usuario.id, { onDelete: 'restrict' }),
+    status: statusTarefaEnum('status').notNull().default('a_fazer'),
+    /** Data (calendário de Brasília), sem hora. */
+    venceEm: date('vence_em', { mode: 'string' }),
+    criadoPor: integer('criado_por').references(() => usuario.id, { onDelete: 'set null' }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('tarefa_responsavel_idx').on(t.responsavelId),
+    index('tarefa_status_idx').on(t.status),
+    index('tarefa_processo_idx').on(t.processoId),
   ],
 );

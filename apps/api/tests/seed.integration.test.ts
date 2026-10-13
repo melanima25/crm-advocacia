@@ -55,6 +55,18 @@ describe.each([
     ).toHaveLength(2);
   });
 
+  it('gera 12 tarefas coerentes (atrasadas, abertas e feitas) para as 3 pessoas', async () => {
+    await limpar(db);
+    await semear(db, ITERACOES_TESTE, agora);
+    const tarefas = await db.select().from(schema.tarefa);
+    expect(tarefas).toHaveLength(12);
+    expect(new Set(tarefas.map((x) => x.responsavelId)).size).toBe(3);
+    const hoje = hojeEmBrasilia(agora);
+    expect(tarefas.some((x) => x.status !== 'feito' && x.venceEm! < hoje)).toBe(true);
+    expect(tarefas.some((x) => x.status === 'feito')).toBe(true);
+    expect(tarefas.some((x) => x.processoId === null)).toBe(true);
+  });
+
   it('é determinístico e repetível (rodar duas vezes dá o mesmo resultado)', async () => {
     await limpar(db);
     await semear(db, ITERACOES_TESTE, agora);

@@ -7,6 +7,11 @@
   --color-texto: #e8edf4;
   --color-suave: #a3afc0;
   --color-ouro: #d9b45f;
+  /* dataviz: validado contra a superfície #131a26 (contraste, CVD e separação, todos OK) */
+  --color-viz-1: #3987e5;
+  --color-viz-2: #d95926;
+  --color-viz-grade: #1e2733;
+  --color-viz-eixo: #3a4656;
 }
 
 body {

@@ -3,6 +3,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { ACOES, ROTULO_PERFIL, acoesDoPerfil, podeFazer, type UsuarioPublico } from '@crm/shared';
 import { chamar } from '../api';
+import { Dashboard } from './Dashboard';
+import { Tarefas } from './Tarefas';
 import { Clientes } from './Clientes';
 import { Processos } from './Processos';
 import { Prazos } from './Prazos';
@@ -11,11 +13,20 @@ import { Feriados } from './Feriados';
 import { Auditoria } from './Auditoria';
 import { Permissoes } from './Permissoes';
 
-type Aba = 'clientes' | 'processos' | 'prazos' | 'agenda' | 'feriados' | 'permissoes' | 'auditoria';
+type Aba =
+  | 'painel'
+  | 'tarefas'
+  | 'clientes'
+  | 'processos'
+  | 'prazos'
+  | 'agenda'
+  | 'feriados'
+  | 'permissoes'
+  | 'auditoria';
 
 export function Shell({ usuario }: { usuario: UsuarioPublico }) {
   const qc = useQueryClient();
-  const [aba, setAba] = useState<Aba>('clientes');
+  const [aba, setAba] = useState<Aba>('painel');
   const sair = useMutation({
     mutationFn: () => chamar('/api/auth/logout', z.object({ ok: z.boolean() }), { method: 'POST' }),
     onSuccess: () => qc.resetQueries(),
@@ -41,6 +52,14 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
         </button>
       </header>
       <nav aria-label="Seções" className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          aria-pressed={aba === 'painel'}
+          onClick={() => setAba('painel')}
+          className="rounded px-3 py-1.5 text-sm aria-pressed:bg-surface aria-pressed:text-ouro"
+        >
+          Painel
+        </button>
         <button
           type="button"
           aria-pressed={aba === 'clientes'}
@@ -73,6 +92,14 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
         >
           Agenda
         </button>
+        <button
+          type="button"
+          aria-pressed={aba === 'tarefas'}
+          onClick={() => setAba('tarefas')}
+          className="rounded px-3 py-1.5 text-sm aria-pressed:bg-surface aria-pressed:text-ouro"
+        >
+          Tarefas
+        </button>
         {verFeriados && (
           <button
             type="button"
@@ -103,6 +130,8 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
         )}
       </nav>
       <main className="mt-4">
+        {aba === 'painel' && <Dashboard />}
+        {aba === 'tarefas' && <Tarefas perfil={usuario.perfil} usuarioId={usuario.id} />}
         {aba === 'clientes' && <Clientes perfil={usuario.perfil} />}
         {aba === 'processos' && <Processos perfil={usuario.perfil} />}
         {aba === 'prazos' && <Prazos perfil={usuario.perfil} usuarioId={usuario.id} />}

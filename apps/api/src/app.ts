@@ -17,6 +17,8 @@ import { criarSessao, encerrarSessao } from './auth/sessao';
 import { clientesRoutes } from './routes/clientes';
 import { feriadosRoutes } from './routes/feriados';
 import { prazosRoutes } from './routes/prazos';
+import { tarefasRoutes } from './routes/tarefas';
+import { dashboardRoutes } from './routes/dashboard';
 import { processosRoutes } from './routes/processos';
 import { HASH_FALSO, verificarSenha } from './auth/senha';
 
@@ -119,6 +121,8 @@ export function createApp(db: Db, options: AppOptions = {}) {
   app.route('/api/processos', processosRoutes(db, logado));
   app.route('/api/prazos', prazosRoutes(db, logado, agora));
   app.route('/api/feriados', feriadosRoutes(db, logado));
+  app.route('/api/tarefas', tarefasRoutes(db, logado, agora));
+  app.route('/api/dashboard', dashboardRoutes(db, logado, agora));
 
   // ---------------- usuários (só admin) ----------------
   app.get('/api/usuarios', logado, exigir('usuario:gerenciar'), async (c) => {
