@@ -17,7 +17,7 @@ senha e documentar a troca (ADR) em vez de fingir que não existia.
 Stack: React, Hono, Drizzle, PostgreSQL (Neon), Cloudflare Workers, Playwright + axe, GitHub Actions.
 Dados 100% fictícios.
 
-Demo: https://crm-advocacia.SEU-SUBDOMINIO.workers.dev (advogado@demo.crm / demo1234)
+Demo: https://crm-advocacia.brenojf19.workers.dev (advogado@demo.crm / demo1234)
 Código: https://github.com/melanima25/crm-advocacia
 
 Estou buscando minha primeira vaga remota como dev júnior — se fizer sentido, vamos conversar.

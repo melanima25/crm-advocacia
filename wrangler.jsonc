@@ -20,7 +20,7 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "COLE-AQUI-O-ID-DO-HYPERDRIVE",
+      "id": "274f39b0a5824bab8155631ff1ce59e0",
       "localConnectionString": "postgres://crm:crm@localhost:5432/crm",
     },
   ],

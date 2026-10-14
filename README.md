@@ -8,7 +8,7 @@ CRM para escritório de advocacia: clientes, processos, prazos em dias úteis, t
 **Status:** v1.0 — base do sistema (monorepo, Docker Compose, schema, seed,
 autenticação, perfis admin / advogado / assistente, auditoria) **clientes** (CRUD, busca, filtro e paginação no servidor) e **processos** com número no formato CNJ, validado pelo dígito verificador (módulo 97, Res. CNJ 65/2008), além de **prazos em dias úteis com feriados**, agenda, **tarefas** (quadro A fazer / Fazendo / Feito) e um **painel** com indicadores. Tudo sobe com um comando (`docker compose up --build`) e é verificado por testes de ponta a ponta com checagem de acessibilidade.
 
-**Demo ao vivo:** https://crm-advocacia.SEU-SUBDOMINIO.workers.dev — entre com `advogado@demo.crm` / `demo1234`
+**Demo ao vivo:** https://crm-advocacia.brenojf19.workers.dev — entre com `advogado@demo.crm` / `demo1234`
 (também `admin@demo.crm` e `assistente@demo.crm`). Os dados são fictícios e **são recriados todo dia às 05:00 (Brasília)**.
 
 ![Demonstração](docs/img/demo.gif)
