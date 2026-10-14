@@ -37,3 +37,51 @@ jobs:
       - run: npm test
       - run: npm run test:integration
       - run: npm run build
+      - name: Instalar o Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Testes e2e (Playwright + axe)
+        run: npm run e2e
+        env:
+          E2E_DATABASE_URL: postgres://crm:crm@localhost:5432/crm_test
+      - name: Guardar relatório do e2e se falhar
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-e2e
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7
+
+  docker:
+    # Prova que o `docker compose up --build` do README funciona: sobe banco + API + web,
+    # espera ficarem saudáveis, entra com o usuário demo pelo nginx e confere o painel.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Subir tudo
+        run: docker compose up -d --build --wait --wait-timeout 180
+      - name: Fumaça (saúde, login e painel pela porta 8080)
+        run: |
+          set -euo pipefail
+          curl -fsS http://localhost:8080/api/health
+          curl -fsS -c cookies.txt -X POST http://localhost:8080/api/auth/login \
+            -H 'X-Requested-With: fetch' -H 'Content-Type: application/json' \
+            -d '{"email":"advogado@demo.crm","senha":"demo1234"}' > /dev/null
+          curl -fsS -b cookies.txt http://localhost:8080/api/dashboard | grep -q '"processos":{'
+          curl -fsS http://localhost:8080/ | grep -q 'CRM Advocacia'
+      - name: Reiniciar a API não pode apagar dados (seed só com banco vazio)
+        run: |
+          set -euo pipefail
+          H='X-Requested-With: fetch'
+          J='Content-Type: application/json'
+          curl -fsS -b cookies.txt -X POST http://localhost:8080/api/clientes -H "$H" -H "$J" \
+            -d '{"tipo":"PF","nome":"Cliente Persistencia Docker"}' > /dev/null
+          docker compose restart api
+          docker compose up -d --wait --wait-timeout 120
+          curl -fsS -c cookies.txt -X POST http://localhost:8080/api/auth/login -H "$H" -H "$J" \
+            -d '{"email":"advogado@demo.crm","senha":"demo1234"}' > /dev/null
+          curl -fsS -b cookies.txt 'http://localhost:8080/api/clientes?q=Persistencia' | grep -q 'Cliente Persistencia Docker'
+      - name: Logs se falhar
+        if: failure()
+        run: docker compose logs --no-color

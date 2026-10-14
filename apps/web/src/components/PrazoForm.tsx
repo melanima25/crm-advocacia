@@ -34,7 +34,7 @@ export function PrazoForm({ prazo, onFechar }: { prazo: Prazo | null; onFechar: 
   const contagem = tipo === 'prazo' && modo === 'contagem';
 
   const processos = useQuery({
-    queryKey: ['processos-opcoes'],
+    queryKey: ['processos-para-selecao'],
     queryFn: () => chamar('/api/processos?porPagina=100', ProcessosResponseSchema),
   });
   const opcoes = useQuery({

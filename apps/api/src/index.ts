@@ -1,12 +1,12 @@
 import { serve } from '@hono/node-server';
 import { createApp } from './app';
 import { createDb } from './db/client';
-import { parseEnv } from './env';
+import { cookieSeguro, parseEnv } from './env';
 
 const env = parseEnv();
 const { db } = createDb(env.DATABASE_URL);
 const app = createApp(db, {
-  cookieSeguro: env.NODE_ENV === 'production',
+  cookieSeguro: cookieSeguro(env),
   sessaoDias: env.SESSAO_DIAS,
 });
 

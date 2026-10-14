@@ -32,7 +32,7 @@ export function TarefaForm({
   const [venceEm, setVenceEm] = useState(tarefa?.venceEm ?? '');
 
   const processos = useQuery({
-    queryKey: ['processos-opcoes'],
+    queryKey: ['processos-para-selecao'],
     queryFn: () => chamar('/api/processos?porPagina=100', ProcessosResponseSchema),
   });
   const opcoes = useQuery({

@@ -40,7 +40,7 @@ export function ProcessoForm({
     queryFn: () => chamar('/api/clientes?porPagina=100', ClientesResponseSchema),
   });
   const opcoes = useQuery({
-    queryKey: ['processos-opcoes'],
+    queryKey: ['processos-opcoes-resp'],
     queryFn: () => chamar('/api/processos/opcoes', OpcoesResponseSchema),
   });
 

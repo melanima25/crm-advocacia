@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { ACOES, ROTULO_PERFIL, acoesDoPerfil, podeFazer, type UsuarioPublico } from '@crm/shared';
 import { chamar } from '../api';
 import { Dashboard } from './Dashboard';
+import { LimiteDeErro } from './LimiteDeErro';
 import { Tarefas } from './Tarefas';
 import { Clientes } from './Clientes';
 import { Processos } from './Processos';
@@ -130,21 +131,23 @@ export function Shell({ usuario }: { usuario: UsuarioPublico }) {
         )}
       </nav>
       <main className="mt-4">
-        {aba === 'painel' && <Dashboard />}
-        {aba === 'tarefas' && <Tarefas perfil={usuario.perfil} usuarioId={usuario.id} />}
-        {aba === 'clientes' && <Clientes perfil={usuario.perfil} />}
-        {aba === 'processos' && <Processos perfil={usuario.perfil} />}
-        {aba === 'prazos' && <Prazos perfil={usuario.perfil} usuarioId={usuario.id} />}
-        {aba === 'agenda' && <Agenda />}
-        {aba === 'feriados' && verFeriados && <Feriados />}
-        {aba === 'permissoes' && (
-          <Permissoes
-            perfil={usuario.perfil}
-            total={ACOES.length}
-            permitidas={acoesDoPerfil(usuario.perfil)}
-          />
-        )}
-        {aba === 'auditoria' && verAuditoria && <Auditoria />}
+        <LimiteDeErro chave={aba}>
+          {aba === 'painel' && <Dashboard />}
+          {aba === 'tarefas' && <Tarefas perfil={usuario.perfil} usuarioId={usuario.id} />}
+          {aba === 'clientes' && <Clientes perfil={usuario.perfil} />}
+          {aba === 'processos' && <Processos perfil={usuario.perfil} />}
+          {aba === 'prazos' && <Prazos perfil={usuario.perfil} usuarioId={usuario.id} />}
+          {aba === 'agenda' && <Agenda />}
+          {aba === 'feriados' && verFeriados && <Feriados />}
+          {aba === 'permissoes' && (
+            <Permissoes
+              perfil={usuario.perfil}
+              total={ACOES.length}
+              permitidas={acoesDoPerfil(usuario.perfil)}
+            />
+          )}
+          {aba === 'auditoria' && verAuditoria && <Auditoria />}
+        </LimiteDeErro>
       </main>
     </div>
   );

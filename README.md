@@ -5,15 +5,28 @@ CRM para escritório de advocacia: clientes, processos, prazos em dias úteis, t
 > **Aviso:** projeto de portfólio. Todos os dados são **fictícios** (nomes, e-mails, números de processo
 > com ano 2099). Não representa nenhum escritório real e não deve receber dados reais.
 
-**Status:** v0.5 (em construção) — base do sistema (monorepo, Docker Compose, schema, seed,
-autenticação, perfis admin / advogado / assistente, auditoria) **clientes** (CRUD, busca, filtro e paginação no servidor) e **processos** com número no formato CNJ, validado pelo dígito verificador (módulo 97, Res. CNJ 65/2008), além de **prazos em dias úteis com feriados**, agenda, **tarefas** (quadro A fazer / Fazendo / Feito) e um **painel** com indicadores.
+**Status:** v0.6 (em construção) — base do sistema (monorepo, Docker Compose, schema, seed,
+autenticação, perfis admin / advogado / assistente, auditoria) **clientes** (CRUD, busca, filtro e paginação no servidor) e **processos** com número no formato CNJ, validado pelo dígito verificador (módulo 97, Res. CNJ 65/2008), além de **prazos em dias úteis com feriados**, agenda, **tarefas** (quadro A fazer / Fazendo / Feito) e um **painel** com indicadores. Tudo sobe com um comando (`docker compose up --build`) e é verificado por testes de ponta a ponta com checagem de acessibilidade.
 
 ## Stack
 
-React 19 + Vite + Tailwind · Hono · Drizzle ORM · PostgreSQL 16 · Zod · Vitest · GitHub Actions.
+React 19 + Vite + Tailwind · Hono · Drizzle ORM · PostgreSQL 16 · Zod · Vitest · Playwright + axe-core · Docker Compose (nginx) · GitHub Actions.
 Produção planejada: Cloudflare Workers + Neon.
 
 ## Como rodar (Windows/PowerShell ou qualquer shell)
+
+**Opção 1 — tudo em Docker (mais simples).** Só precisa do Docker Desktop:
+
+```
+docker compose up --build
+```
+
+Abra http://localhost:8080. O banco, a API e o site sobem juntos; as migrações rodam sozinhas e os dados
+fictícios são criados **só se o banco estiver vazio** (reiniciar não apaga o que você cadastrou). Para
+recomeçar do zero: `docker compose down -v`. O site (nginx) é o único serviço exposto e encaminha `/api`
+para a API, na rede interna do Compose (mesma origem, sem CORS).
+
+**Opção 2 — desenvolvimento** (API e web no seu computador, só o banco em Docker):
 
 ```
 npm install
@@ -27,14 +40,27 @@ npm run dev
 Abra http://localhost:5173. Contas de demonstração (senha `demo1234`): `admin@demo.crm`,
 `advogado@demo.crm`, `assistente@demo.crm`.
 
+> No Compose a API roda com `NODE_ENV=production`, em que o cookie de sessão é `Secure` (só HTTPS).
+> Como o acesso local é `http://localhost`, o Compose define `COOKIE_SEGURO=false`. Em um servidor com
+> HTTPS, remova essa variável.
+
 ## Testes
 
 ```
-npm test                 # unitários (matriz de permissões, hash de senha)
+npm test                 # unitários (permissões, hash de senha, regras de domínio, gráficos)
 npm run test:integration # API contra Postgres (usa um banco com "test" no nome)
+npm run e2e              # navegador de verdade: API + web + banco, com axe (acessibilidade)
 ```
 
-Os testes de integração apagam dados: por segurança só rodam em banco cujo nome contém `test`.
+Os testes de integração e o e2e apagam dados: por segurança só rodam em banco cujo nome contém `test`
+(ou `e2e`). Na primeira vez do e2e, instale o navegador: `npx playwright install chromium`.
+
+O e2e cobre: o fluxo principal (cliente → processo com número CNJ válido → prazo com vencimento
+calculado, pulando fim de semana e feriado → tarefa refletida no painel), o que cada perfil enxerga
+(inclusive "sem botão de excluir na tela **e** a API responde 403"), o painel básico sem dados de
+processos, login/logout e **axe-core (WCAG 2.1 A/AA) em todas as telas de cada perfil**, em
+formulários abertos, com as tabelas dos gráficos expandidas e em 375 px de largura. Um teste de
+controle garante que o axe realmente acusa problemas (imagem sem texto alternativo, contraste ruim).
 
 ## Regras de prazos (regras do projeto fictício — não é consultoria jurídica)
 

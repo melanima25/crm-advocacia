@@ -8,9 +8,17 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   SESSAO_DIAS: z.coerce.number().int().min(1).max(90).default(7),
+  /**
+   * Cookie com flag Secure (só trafega em HTTPS). Padrão: ligado em produção. Desligue
+   * explicitamente para rodar a versão de produção em http://localhost (docker compose).
+   */
+  COOKIE_SEGURO: z.enum(['true', 'false']).optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
+
+export const cookieSeguro = (env: Pick<Env, 'NODE_ENV' | 'COOKIE_SEGURO'>): boolean =>
+  env.COOKIE_SEGURO ? env.COOKIE_SEGURO === 'true' : env.NODE_ENV === 'production';
 
 /** Valida variáveis de ambiente; falha cedo com mensagem legível (sem imprimir valores). */
 export function parseEnv(source: Record<string, string | undefined> = process.env): Env {

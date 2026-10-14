@@ -14,9 +14,16 @@ import { GraficoEmpilhadas } from './graficos/GraficoEmpilhadas';
 /** Número de destaque: valor grande + texto. Alerta usa ícone e texto (nunca só cor). */
 function Indicador({ rotulo, valor, alerta }: { rotulo: string; valor: number; alerta?: boolean }) {
   return (
-    <div className="rounded-lg border border-borda bg-surface p-4">
+    <div
+      className="rounded-lg border border-borda bg-surface p-4"
+      data-testid={`indicador-${rotulo
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .replace(/\s+/g, '-')}`}
+    >
       <p className="text-sm text-suave">{rotulo}</p>
-      <p className="mt-1 text-3xl font-semibold tabular-nums">
+      <p className="mt-1 text-3xl font-semibold tabular-nums" data-testid="valor">
         {alerta && valor > 0 && (
           <span aria-hidden="true" className="mr-1 text-2xl">
             ⚠

@@ -317,11 +317,20 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const env = parseEnv();
   const { db, close } = createDb(env.DATABASE_URL);
   try {
-    // Em Workers o PBKDF2 aceita até ~100k iterações (ver docs/adr/0001): use HASH_ITERACOES=100000 lá.
-    await semear(db, process.env.HASH_ITERACOES ? Number(process.env.HASH_ITERACOES) : undefined);
-    console.log(
-      `Seed ok: ${USUARIOS_DEMO.length} usuários e ${clientesDemo().length} clientes e 12 processos, feriados, 14 prazos e 12 tarefas fictícios (senha ${SENHA_DEMO}).`,
-    );
+    // `--se-vazio`: só semeia se ainda não há usuários (usado pelo Docker: reiniciar o container
+    // não pode apagar os dados que alguém criou).
+    const [existente] = process.argv.includes('--se-vazio')
+      ? await db.select({ id: schema.usuario.id }).from(schema.usuario).limit(1)
+      : [];
+    if (existente) {
+      console.log('Banco já tem dados: seed ignorado (--se-vazio).');
+    } else {
+      // Em Workers o PBKDF2 aceita até ~100k iterações (ver docs/adr/0001): use HASH_ITERACOES=100000 lá.
+      await semear(db, process.env.HASH_ITERACOES ? Number(process.env.HASH_ITERACOES) : undefined);
+      console.log(
+        `Seed ok: ${USUARIOS_DEMO.length} usuários e ${clientesDemo().length} clientes e 12 processos, feriados, 14 prazos e 12 tarefas fictícios (senha ${SENHA_DEMO}).`,
+      );
+    }
   } finally {
     await close();
   }
