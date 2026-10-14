@@ -5,13 +5,24 @@ CRM para escritório de advocacia: clientes, processos, prazos em dias úteis, t
 > **Aviso:** projeto de portfólio. Todos os dados são **fictícios** (nomes, e-mails, números de processo
 > com ano 2099). Não representa nenhum escritório real e não deve receber dados reais.
 
-**Status:** v0.6 (em construção) — base do sistema (monorepo, Docker Compose, schema, seed,
+**Status:** v1.0 — base do sistema (monorepo, Docker Compose, schema, seed,
 autenticação, perfis admin / advogado / assistente, auditoria) **clientes** (CRUD, busca, filtro e paginação no servidor) e **processos** com número no formato CNJ, validado pelo dígito verificador (módulo 97, Res. CNJ 65/2008), além de **prazos em dias úteis com feriados**, agenda, **tarefas** (quadro A fazer / Fazendo / Feito) e um **painel** com indicadores. Tudo sobe com um comando (`docker compose up --build`) e é verificado por testes de ponta a ponta com checagem de acessibilidade.
+
+**Demo ao vivo:** https://crm-advocacia.SEU-SUBDOMINIO.workers.dev — entre com `advogado@demo.crm` / `demo1234`
+(também `admin@demo.crm` e `assistente@demo.crm`). Os dados são fictícios e **são recriados todo dia às 05:00 (Brasília)**.
+
+![Demonstração](docs/img/demo.gif)
+
+| Painel                         | Processos                            |
+| ------------------------------ | ------------------------------------ |
+| ![Painel](docs/img/painel.png) | ![Processos](docs/img/processos.png) |
+| **Agenda**                     | **Tarefas**                          |
+| ![Agenda](docs/img/agenda.png) | ![Tarefas](docs/img/tarefas.png)     |
 
 ## Stack
 
 React 19 + Vite + Tailwind · Hono · Drizzle ORM · PostgreSQL 16 · Zod · Vitest · Playwright + axe-core · Docker Compose (nginx) · GitHub Actions.
-Produção planejada: Cloudflare Workers + Neon.
+Produção: Cloudflare Workers + Hyperdrive + Neon (plano gratuito).
 
 ## Como rodar (Windows/PowerShell ou qualquer shell)
 
@@ -80,9 +91,18 @@ controle garante que o axe realmente acusa problemas (imagem sem texto alternati
 - O painel (`GET /api/dashboard`) tem dois níveis: o **completo** (admin e advogado) inclui processos por status e por área; o **básico** (assistente) traz só prazos e tarefas — a seção de processos **não é enviada** pela API (testado), não apenas escondida na tela.
 - Gráficos: barras horizontais, colunas e barras empilhadas, todos em SVG próprio, com paleta validada (contraste e daltonismo) contra o fundo escuro, ponta arredondada de 4px, tooltip por mouse **e** teclado, legenda quando há duas séries, e uma tabela equivalente em cada gráfico ("Ver dados do gráfico em tabela").
 
+## Deploy
+
+Um único Worker serve a API e o site; o banco é Postgres no Neon via Hyperdrive; um Cron Trigger recria os
+dados fictícios todo dia. Passo a passo em [docs/deploy.md](docs/deploy.md); decisões em
+[ADR 0002](docs/adr/0002-deploy-cloudflare-neon.md). Local no estilo Workers: `npm run cf:dev`.
+
+**Qualidade medida** (Lighthouse na tela de login, build de produção): desempenho 99, acessibilidade 100,
+boas práticas 96, SEO 91. O axe-core roda no CI em todas as telas, nos 3 perfis, e não pode ter violações.
+
 ## Decisões de segurança
 
-- Senha: PBKDF2-SHA256 via Web Crypto, roda igual em Node e Workers ([ADR 0001](docs/adr/0001-hash-de-senha.md)).
+- Senha: PBKDF2-SHA256 via Web Crypto, roda igual em Node e Workers ([ADR 0001](docs/adr/0001-hash-de-senha.md)). Na demo gratuita usa 10.000 iterações por limite de CPU ([ADR 0002](docs/adr/0002-deploy-cloudflare-neon.md)); o padrão do código é 600.000.
 - Sessão no banco; o cookie guarda um token e o banco só o hash dele (`HttpOnly`, `SameSite=Lax`, `Secure` em produção).
 - Bloqueio de login: 5 falhas em 15 min por e-mail (429 + `Retry-After`); mensagem de erro genérica.
 - CSRF: cabeçalho `X-Requested-With` obrigatório em requisições que alteram dados.
@@ -92,3 +112,6 @@ controle garante que o axe realmente acusa problemas (imagem sem texto alternati
 ## Uso de IA
 
 Desenvolvido com assistência de IA (Claude); as decisões, a revisão e os testes são do autor.
+Usei a IA para gerar código e testes em semanas, mas cada semana só foi adiante com CI verde; ela me ajudou a
+achar um bug real (colisão de chave de cache no React Query) pelos testes e2e e a medir limites do Workers
+antes de decidir. Os limites da demo (hash com menos iterações, sem upload de documentos) estão documentados.

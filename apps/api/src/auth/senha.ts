@@ -57,6 +57,9 @@ export async function verificarSenha(senha: string, guardado: string): Promise<b
 
 /**
  * Hash "de mentira" para gastar o mesmo tempo quando o e-mail não existe. Sem isso, a resposta
- * mais rápida revelaria quais e-mails têm conta.
+ * mais rápida revelaria quais e-mails têm conta. As iterações devem ser as mesmas dos hashes reais
+ * (e, no Cloudflare Workers, nunca acima de 100.000: acima disso o runtime lança erro).
  */
-export const HASH_FALSO = `pbkdf2$sha256$${ITERACOES_PADRAO}$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=`;
+export const hashFalso = (iteracoes = ITERACOES_PADRAO) =>
+  `pbkdf2$sha256$${iteracoes}$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=`;
+export const HASH_FALSO = hashFalso();

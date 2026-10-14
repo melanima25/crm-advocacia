@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gerarHash, verificarSenha } from './senha';
+import { gerarHash, hashFalso, verificarSenha } from './senha';
 
 describe('hash de senha', () => {
   it('aceita a senha certa e recusa a errada', async () => {
@@ -18,5 +18,15 @@ describe('hash de senha', () => {
   it('recusa formatos inválidos sem lançar erro', async () => {
     expect(await verificarSenha('a', 'lixo')).toBe(false);
     expect(await verificarSenha('a', 'bcrypt$x$1$a$b')).toBe(false);
+  });
+});
+
+describe('hashFalso (e-mail inexistente)', () => {
+  it('usa as iterações pedidas, para gastar o mesmo tempo dos hashes reais', () => {
+    expect(hashFalso(10_000)).toMatch(/^pbkdf2\$sha256\$10000\$/);
+    expect(hashFalso()).toMatch(/^pbkdf2\$sha256\$600000\$/);
+  });
+  it('é um hash válido que nunca confere (e roda no número de iterações configurado)', async () => {
+    expect(await verificarSenha('qualquer-coisa', hashFalso(1000))).toBe(false);
   });
 });

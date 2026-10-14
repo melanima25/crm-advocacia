@@ -1,0 +1,38 @@
+{
+  // Demo em produção: API (Hono) + site (arquivos estáticos do Vite) no MESMO Worker => mesma origem, sem CORS.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "crm-advocacia",
+  "main": "apps/api/src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": "apps/web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // só /api/* passa pelo código; o resto é arquivo estático (sem gastar CPU)
+    "run_worker_first": ["/api/*"],
+  },
+
+  // Postgres no Neon via Hyperdrive. Troque o id pelo que `wrangler hyperdrive create` devolver (docs/deploy.md).
+  // O id NÃO é segredo (a senha do banco fica guardada na Cloudflare, não neste arquivo).
+  // localConnectionString: usado só no `wrangler dev` (banco local do docker compose).
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "COLE-AQUI-O-ID-DO-HYPERDRIVE",
+      "localConnectionString": "postgres://crm:crm@localhost:5432/crm",
+    },
+  ],
+
+  // Reset diário dos dados fictícios: 08:00 UTC = 05:00 em Brasília (horário de pouco acesso).
+  "triggers": { "crons": ["0 8 * * *"] },
+
+  "vars": {
+    // Plano gratuito: 10 ms de CPU por requisição. Precisa ser IGUAL ao valor usado no seed (docs/adr/0002).
+    "HASH_ITERACOES": "10000",
+    "SESSAO_DIAS": "1",
+  },
+
+  "observability": { "enabled": true },
+}

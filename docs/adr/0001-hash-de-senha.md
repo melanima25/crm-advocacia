@@ -21,14 +21,14 @@ Padrão 600.000 (recomendação OWASP); configurável no seed por `HASH_ITERACOE
 | 210.000   | ~34 ms                |
 | 600.000   | ~88 ms                |
 
-## Riscos em Workers (a validar no deploy, semana 13)
+## Riscos em Workers (tratados no [ADR 0002](0002-deploy-cloudflare-neon.md))
 
 - Um artigo de 2024 observa que `crypto.subtle` no Workers aceita no máximo 100.000 iterações
   ([lord.technology](https://lord.technology/2024/02/21/hashing-passwords-on-cloudflare-workers.html)).
   Não é documentação oficial: **[não verificado]** — confirmar com o deploy real.
 - O limite de CPU do plano gratuito é baixo (~10 ms, **[não verificado]**); 100k iterações medem ~15 ms
   em Node. Se estourar: plano pago de Workers ou hospedar a API em Node.
-- Plano: em produção semear com `HASH_ITERACOES=100000` e documentar a troca de nível de segurança.
+- Plano original: 100.000 em produção. **Atualizado no ADR 0002:** 10.000 no plano gratuito (CPU de 10 ms).
 
 ## Consequências
 

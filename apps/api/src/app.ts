@@ -20,12 +20,14 @@ import { prazosRoutes } from './routes/prazos';
 import { tarefasRoutes } from './routes/tarefas';
 import { dashboardRoutes } from './routes/dashboard';
 import { processosRoutes } from './routes/processos';
-import { HASH_FALSO, verificarSenha } from './auth/senha';
+import { hashFalso, verificarSenha } from './auth/senha';
 
 export type AppOptions = {
   /** Cookie com flag Secure (só HTTPS). Ligado em produção. */
   cookieSeguro?: boolean;
   sessaoDias?: number;
+  /** Iterações do hash "de mentira" (e-mail inexistente): iguais às dos hashes reais, senão o tempo denuncia. */
+  iteracoesHashFalso?: number;
   /** Relógio injetável para os testes (expiração de sessão, janela de bloqueio). */
   agora?: () => Date;
 };
@@ -36,6 +38,7 @@ export const JANELA_BLOQUEIO_MIN = 15;
 export function createApp(db: Db, options: AppOptions = {}) {
   const agora = options.agora ?? (() => new Date());
   const sessaoDias = options.sessaoDias ?? 7;
+  const hashDeMentira = hashFalso(options.iteracoesHashFalso);
   const app = new Hono<AppEnv>();
   const logado = autenticar(db, agora);
 
@@ -76,7 +79,7 @@ export function createApp(db: Db, options: AppOptions = {}) {
 
     // 2) confere a senha (gasta o mesmo tempo se o e-mail não existe)
     const [u] = await db.select().from(schema.usuario).where(eq(schema.usuario.email, email));
-    const senhaOk = await verificarSenha(senha, u?.senhaHash ?? HASH_FALSO);
+    const senhaOk = await verificarSenha(senha, u?.senhaHash ?? hashDeMentira);
     if (!u || !u.ativo || !senhaOk) {
       await db.insert(schema.tentativaLogin).values({ email, sucesso: false, ocorridaEm: t });
       return c.json({ erro: 'E-mail ou senha inválidos' }, 401);

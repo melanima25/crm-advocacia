@@ -24,7 +24,10 @@
     "db:generate": "npm run db:generate -w @crm/api",
     "db:migrate": "npm run db:migrate -w @crm/api",
     "seed": "npm run seed -w @crm/api",
-    "e2e": "npm run e2e -w @crm/e2e"
+    "e2e": "npm run e2e -w @crm/e2e",
+    "cf:dev": "npm run build -w @crm/web && wrangler dev",
+    "cf:deploy": "npm run build -w @crm/web && wrangler deploy",
+    "cf:tail": "wrangler tail"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -37,6 +40,7 @@
     "prettier": "^3.9.9",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.1",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "wrangler": "^4.150.0"
   }
 }
