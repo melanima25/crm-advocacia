@@ -7,7 +7,7 @@ on:
 
 jobs:
   qualidade:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: public.ecr.aws/docker/library/postgres:16
@@ -56,7 +56,7 @@ jobs:
   docker:
     # Prova que o `docker compose up --build` do README funciona: sobe banco + API + web,
     # espera ficarem saudáveis, entra com o usuário demo pelo nginx e confere o painel.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Subir tudo
