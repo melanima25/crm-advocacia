@@ -1,5 +1,7 @@
 # CRM Advocacia (projeto de demonstração)
 
+[![CI](https://github.com/melanima25/crm-advocacia/actions/workflows/ci.yml/badge.svg)](https://github.com/melanima25/crm-advocacia/actions/workflows/ci.yml)
+
 CRM para escritório de advocacia: clientes, processos, prazos em dias úteis, tarefas e auditoria.
 
 > **Aviso:** projeto de portfólio. Todos os dados são **fictícios** (nomes, e-mails, números de processo
